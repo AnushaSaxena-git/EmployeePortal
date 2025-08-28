@@ -16,25 +16,30 @@ namespace EmployeePortal.Repository
                 _config = config;
             }
 
-            public string GenerateToken(string username)
+
+        public string GenerateToken(string username)
+        {
+            var securityKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
             {
-                var claims = new[]
-                {
-            new Claim(ClaimTypes.Name, username)
-        };
+                new Claim(ClaimTypes.Name, username),
+                new Claim(ClaimTypes.Role, "Admin") // 👈 or user role from DB
+            };
 
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken(
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddHours(1),
+                signingCredentials: credentials
+            );
 
-                var token = new JwtSecurityToken(
-                    issuer: _config["Jwt:Issuer"],
-                    audience: _config["Jwt:Audience"],
-                    claims: claims,
-                    expires: DateTime.Now.AddHours(1),
-                    signingCredentials: creds);
-
-                return new JwtSecurityTokenHandler().WriteToken(token);
-            }
-        }   
-
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
     }
+
+}
